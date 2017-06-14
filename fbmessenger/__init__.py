@@ -26,18 +26,22 @@ class MessengerClient(object):
         )
         return r.json()
 
-    def send(self, payload, entry):
+    def send(self, payload, entry, tag=None):
+        data = {
+            'recipient': {
+                'id': entry['sender']['id']
+            },
+            'message': payload
+        }
+        if tag:
+            data["tag"] = tag
+        print data
         r = self.session.post(
             'https://graph.facebook.com/v2.6/me/messages',
             params={
                 'access_token': self.page_access_token
             },
-            json={
-                'recipient': {
-                    'id': entry['sender']['id']
-                },
-                'message': payload
-            }
+            json=data
         )
         return r.json()
 
@@ -208,8 +212,8 @@ class BaseMessenger(object):
     def get_user(self):
         return self.client.get_user_data(self.last_message)
 
-    def send(self, payload):
-        return self.client.send(payload, self.last_message)
+    def send(self, payload, tag=None):
+        return self.client.send(payload, self.last_message, tag)
 
     def send_action(self, sender_action):
         return self.client.send_action(sender_action, self.last_message)
