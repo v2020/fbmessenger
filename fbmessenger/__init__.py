@@ -221,6 +221,10 @@ class BaseMessenger(object):
     def get_user_id(self):
         return self.last_message['sender']['id']
 
+    def set_user_id(self, user_id):
+        self.last_message = {"sender": {"id": user_id}}
+        return self.get_user_id()
+
     def subscribe_app_to_page(self):
         return self.client.subscribe_app_to_page()
 
