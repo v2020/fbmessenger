@@ -40,7 +40,8 @@ class Button(object):
 
     def __init__(self, button_type, title=None, url=None,
                  payload=None, webview_height_ratio=None,
-                 messenger_extensions=None, fallback_url=None):
+                 messenger_extensions=None, fallback_url=None,
+                 share_contents=None):
 
         if button_type not in self.BUTTON_TYPES:
             raise ValueError('Invalid button_type provided.')
@@ -57,6 +58,7 @@ class Button(object):
         self.webview_height_ratio = webview_height_ratio
         self.messenger_extensions = messenger_extensions
         self.fallback_url = fallback_url
+        self.share_contents = share_contents
 
     def to_dict(self):
         d = {
@@ -76,6 +78,8 @@ class Button(object):
                 d['messenger_extensions'] = 'true'
             if self.fallback_url:
                 d['fallback_url'] = self.fallback_url
+        if self.share_contents:
+            d['share_contents'] = self.share_contents.to_dict()
         return d
 
 
