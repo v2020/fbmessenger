@@ -192,6 +192,10 @@ class BaseMessenger(object):
     def read(self, message):
         """Method to handle `message_reads`"""
 
+    @abc.abstractmethod
+    def referral(self, message):
+        """Method to handle `messaging_referrals`"""
+
     def handle(self, payload):
         for entry in payload['entry']:
             for message in entry['messaging']:
@@ -208,6 +212,8 @@ class BaseMessenger(object):
                     return self.postback(message)
                 elif message.get('read'):
                     return self.read(message)
+                elif message.get('referral'):
+                    return self.referral(message)
 
     def get_user(self):
         return self.client.get_user_data(self.last_message)
