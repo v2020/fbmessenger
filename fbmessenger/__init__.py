@@ -4,13 +4,27 @@ import logging
 
 import requests
 
-__version__ = '4.2.0'
+__version__ = '5.1.0'
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 class MessengerClient(object):
+
+    # https://developers.facebook.com/docs/messenger-platform/send-messages#send_api_basics
+    MESSAGING_TYPES = {
+        'RESPONSE',
+        'UPDATE',
+        'MESSAGE_TAG',
+        'NON_PROMOTIONAL_SUBSCRIPTION'
+    }
+
+    # https://developers.facebook.com/docs/messenger-platform/reference/send-api/
+    NOTIFICATION_TYPES = {
+        'REGULAR',
+        'SILENT_PUSH',
+        'NO_PUSH'
+    }
 
     def __init__(self, page_access_token):
         self.page_access_token = page_access_token
@@ -18,7 +32,7 @@ class MessengerClient(object):
 
     def get_user_data(self, entry):
         r = self.session.get(
-            'https://graph.facebook.com/v2.6/{sender}'.format(sender=entry['sender']['id']),
+            'https://graph.facebook.com/v2.11/{sender}'.format(sender=entry['sender']['id']),
             params={
                 'fields': 'first_name,last_name,profile_pic,locale,timezone,gender',
                 'access_token': self.page_access_token
@@ -26,28 +40,42 @@ class MessengerClient(object):
         )
         return r.json()
 
-    def send(self, payload, entry, tag=None):
-        data = {
+    def send(self, payload, entry, messaging_type, notification_type=None, tag=None):
+        if messaging_type not in self.MESSAGING_TYPES:
+            raise ValueError(
+                '`{}` is not a valid `messaging_type`'.format(messaging_type))
+
+        body = {
+            'messaging_type': messaging_type,
             'recipient': {
                 'id': entry['sender']['id']
             },
             'message': payload
         }
+
         if tag:
-            data["tag"] = tag
-        print data
+            body["tag"] = tag
+
+        if notification_type:
+            if notification_type not in self.NOTIFICATION_TYPES:
+                raise ValueError(
+                    '`{}` is not a valid `notification_type`'.format(
+                        notification_type))
+            body['notification_type'] = notification_type
+
+        print body
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me/messages',
+            'https://graph.facebook.com/v2.11/me/messages',
             params={
                 'access_token': self.page_access_token
             },
-            json=data
+            json=body
         )
         return r.json()
 
     def send_action(self, sender_action, entry):
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me/messages',
+            'https://graph.facebook.com/v2.11/me/messages',
             params={
                 'access_token': self.page_access_token
             },
@@ -62,7 +90,7 @@ class MessengerClient(object):
 
     def subscribe_app_to_page(self):
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me/subscribed_apps',
+            'https://graph.facebook.com/v2.11/me/subscribed_apps',
             params={
                 'access_token': self.page_access_token
             }
@@ -71,7 +99,7 @@ class MessengerClient(object):
 
     def set_messenger_profile(self, data):
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me/messenger_profile',
+            'https://graph.facebook.com/v2.11/me/messenger_profile',
             params={
                 'access_token': self.page_access_token
             },
@@ -81,7 +109,7 @@ class MessengerClient(object):
 
     def delete_get_started(self):
         r = self.session.delete(
-            'https://graph.facebook.com/v2.6/me/messenger_profile',
+            'https://graph.facebook.com/v2.11/me/messenger_profile',
             params={
                 'access_token': self.page_access_token
             },
@@ -95,7 +123,7 @@ class MessengerClient(object):
 
     def delete_persistent_menu(self):
         r = self.session.delete(
-            'https://graph.facebook.com/v2.6/me/messenger_profile',
+            'https://graph.facebook.com/v2.11/me/messenger_profile',
             params={
                 'access_token': self.page_access_token
             },
@@ -109,7 +137,7 @@ class MessengerClient(object):
 
     def link_account(self, account_linking_token):
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me',
+            'https://graph.facebook.com/v2.11/me',
             params={
                 'access_token': self.page_access_token,
                 'fields': 'recipient',
@@ -120,7 +148,7 @@ class MessengerClient(object):
 
     def unlink_account(self, psid):
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me/unlink_accounts',
+            'https://graph.facebook.com/v2.11/me/unlink_accounts',
             params={
                 'access_token': self.page_access_token
             },
@@ -134,7 +162,7 @@ class MessengerClient(object):
         if not isinstance(domains, list):
             domains = [domains]
         r = self.session.post(
-            'https://graph.facebook.com/v2.6/me/messenger_profile',
+            'https://graph.facebook.com/v2.11/me/messenger_profile',
             params={
                 'access_token': self.page_access_token
             },
@@ -146,7 +174,7 @@ class MessengerClient(object):
 
     def remove_whitelisted_domains(self):
         r = self.session.delete(
-            'https://graph.facebook.com/v2.6/me/messenger_profile',
+            'https://graph.facebook.com/v2.11/me/messenger_profile',
             params={
                 'access_token': self.page_access_token
             },
@@ -154,6 +182,22 @@ class MessengerClient(object):
                 'fields':[
                     'whitelisted_domains'
                 ],
+            }
+        )
+        return r.json()
+
+    def upload_attachment(self, attachment):
+        if not attachment.url:
+            raise ValueError('Attachment must have `url` specified')
+        if attachment.quick_replies:
+            raise ValueError('Attachment may not have `quick_replies`')
+        r = self.session.post(
+            'https://graph.facebook.com/v2.11/me/message_attachments',
+            params={
+                'access_token': self.page_access_token
+            },
+            json={
+                'message':  attachment.to_dict()
             }
         )
         return r.json()
@@ -218,8 +262,8 @@ class BaseMessenger(object):
     def get_user(self):
         return self.client.get_user_data(self.last_message)
 
-    def send(self, payload, tag=None):
-        return self.client.send(payload, self.last_message, tag)
+    def send(self, payload, messaging_type, tag=None):
+        return self.client.send(payload, self.last_message, messaging_type, tag=tag)
 
     def send_action(self, sender_action):
         return self.client.send_action(sender_action, self.last_message)
@@ -251,3 +295,6 @@ class BaseMessenger(object):
 
     def remove_whitelisted_domains(self):
         return self.client.remove_whitelisted_domains()
+
+    def upload_attachment(self, attachment):
+        return self.client.upload_attachment(attachment)

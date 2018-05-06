@@ -204,7 +204,7 @@ def test_send(messenger, monkeypatch):
         'success': True
     }
     monkeypatch.setattr(messenger.client, 'send', mock)
-    res = messenger.send({'text': 'message'})
+    res = messenger.send({'text': 'message'}, 'RESPONSE')
     assert res == mock()
 
 
@@ -271,4 +271,15 @@ def test_remove_whitelisted_domains(messenger, monkeypatch):
     }
     monkeypatch.setattr(messenger.client, 'remove_whitelisted_domains', mock)
     res = messenger.remove_whitelisted_domains()
+    assert res == mock()
+
+
+def test_upload_attachment(messenger, monkeypatch):
+    mock = Mock()
+    mock.return_value = {
+        'attachment_id': 12345
+    }
+    monkeypatch.setattr(messenger.client, 'upload_attachment', mock)
+    attachment = {'some': 'data'}
+    res = messenger.upload_attachment(attachment)
     assert res == mock()
